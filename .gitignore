@@ -31,6 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -39,3 +40,19 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# editor / agent local config
+.cursor/
+.claude/
+
+# design refs + one-off image scripts (not needed at runtime)
+design/
+scripts/
+
+# unused image assets (v1)
+assets/images/chick-eating.png
+assets/images/nest-alone.png
+assets/images/hatch-egg-body.png
+assets/images/hatch-egg-cracked-body.png
+assets/images/hatch-egg-cracked.png
+assets/images/hatch-nest.png
