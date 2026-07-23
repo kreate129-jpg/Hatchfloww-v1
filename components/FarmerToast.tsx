@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -60,6 +61,10 @@ export function FarmerToast({ notice, onDismiss }: Props) {
   const variant = notice?.variant ?? 'toast';
   const message = notice?.message ?? null;
 
+  const finishDismiss = () => {
+    onDismissRef.current();
+  };
+
   const dismiss = () => {
     if (dismissTimer.current) {
       clearTimeout(dismissTimer.current);
@@ -67,7 +72,8 @@ export function FarmerToast({ notice, onDismiss }: Props) {
     }
     cancelAnimation(visible);
     visible.value = withTiming(0, { duration: 220, easing: soft }, (done) => {
-      if (done) onDismissRef.current();
+      'worklet';
+      if (done) runOnJS(finishDismiss)();
     });
   };
 
@@ -105,44 +111,60 @@ export function FarmerToast({ notice, onDismiss }: Props) {
     ],
   }));
 
-  const overlayAnimStyle = useAnimatedStyle(() => ({
-    opacity: visible.value,
+  const backdropAnimStyle = useAnimatedStyle(() => ({
+    opacity: visible.value * 0.45,
   }));
 
   const cardAnimStyle = useAnimatedStyle(() => ({
     opacity: visible.value,
-    transform: [{ scale: 0.88 + visible.value * 0.12 }],
+    transform: [{ translateY: (1 - visible.value) * 120 }],
   }));
 
   if (!message) return null;
 
   if (variant === 'card') {
     return (
-      <Animated.View pointerEvents="box-none" style={[styles.overlay, overlayAnimStyle]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Dismiss"
-          style={styles.backdrop}
-          onPress={dismiss}
-        />
-        <Animated.View style={[styles.cardWrap, cardAnimStyle]}>
-          <View style={styles.modalCard}>
-            <Image source={FARMER} style={styles.modalFarmer} resizeMode="contain" />
-            <Text style={styles.modalTitle}>Coming soon</Text>
-            <Text style={styles.modalText}>{message}</Text>
+      <Modal
+        transparent
+        visible
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={dismiss}
+      >
+        <View style={styles.overlay} pointerEvents="box-none">
+          <Animated.View style={[styles.backdrop, backdropAnimStyle]}>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Dismiss"
+              style={StyleSheet.absoluteFill}
               onPress={dismiss}
-              style={({ pressed }) => [
-                styles.modalBtn,
-                pressed && styles.modalBtnPressed,
-              ]}
-            >
-              <Text style={styles.modalBtnLabel}>Got it</Text>
-            </Pressable>
-          </View>
-        </Animated.View>
-      </Animated.View>
+            />
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.cardWrap,
+              { paddingBottom: Math.max(insets.bottom, spacing.md) },
+              cardAnimStyle,
+            ]}
+          >
+            <View style={styles.modalCard}>
+              <Image source={FARMER} style={styles.modalFarmer} resizeMode="contain" />
+              <Text style={styles.modalTitle}>Coming soon</Text>
+              <Text style={styles.modalText}>{message}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={dismiss}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  pressed && styles.modalBtnPressed,
+                ]}
+              >
+                <Text style={styles.modalBtnLabel}>Got it</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     );
   }
 
@@ -204,19 +226,18 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.lg,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(28, 28, 24, 0.45)',
+    backgroundColor: colors.ink,
   },
   cardWrap: {
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 420,
+    alignSelf: 'center',
     zIndex: 1,
   },
   modalCard: {
